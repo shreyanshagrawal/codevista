@@ -169,11 +169,23 @@ export function buildExecutionSteps(graph) {
   return graph.nodes.map((node, i) => {
     const vars = buildVariablesAt(graph.nodes, i);
     let output = null;
+    let message = `Executing: ${node.label}`;
 
     if (node.type === NodeType.CONSOLE) {
       const arg = extractConsoleArg(node.label).trim();
       const val = vars[arg] !== undefined ? vars[arg] : arg;
       output = `[stdout] ${val}`;
+      message = `Printing value of ${arg} to console: ${val}`;
+    } else if (node.type === NodeType.FUNCTION_DEF) {
+      message = `Defining function or starting execution context.`;
+    } else if (node.type === NodeType.CONDITIONAL) {
+      message = `Evaluating condition: ${node.label}`;
+    } else if (node.type === NodeType.LOOP) {
+      message = `Looping statement. Checking loop condition.`;
+    } else if (node.type === NodeType.ASSIGNMENT) {
+      message = `Variable assignment detected. Updating scope variables.`;
+    } else if (node.type === NodeType.FUNCTION_CALL) {
+      message = `Calling function: ${node.label}`;
     }
 
     return {
@@ -183,6 +195,7 @@ export function buildExecutionSteps(graph) {
         nodeId: node.id,
         label: node.label,
         output: output,
+        message: message
       },
       stateSnapshot: {
         callStack: buildCallStackAt(graph.nodes, i),
@@ -229,4 +242,45 @@ function buildVariablesAt(nodes, upToIdx) {
 function extractConsoleArg(label) {
   const m = label.match(/(?:console\.\w+|print)\((.+)\)$/);
   return m ? m[1] : label;
+}
+
+export function validateSyntax(code) {
+  if (!code || !code.trim()) {
+    return { valid: false, line: 1, message: "Code is empty" };
+  }
+  
+  const lines = code.split('\n');
+  const stack = [];
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    for (let j = 0; j < line.length; j++) {
+      const char = line[j];
+      if (char === '(' || char === '[' || char === '{') stack.push({char, line: i + 1});
+      if (char === ')' || char === ']' || char === '}') {
+        if (stack.length === 0) return { valid: false, line: i + 1, message: `Unexpected '${char}'` };
+        const last = stack.pop();
+        if (
+          (char === ')' && last.char !== '(') ||
+          (char === ']' && last.char !== '[') ||
+          (char === '}' && last.char !== '{')
+        ) {
+          return { valid: false, line: i + 1, message: `Mismatched '${last.char}' and '${char}'` };
+        }
+      }
+    }
+  }
+  if (stack.length > 0) {
+    return { valid: false, line: stack[0].line, message: `Unclosed '${stack[0].char}'` };
+  }
+  
+  // Custom simple checks for trailing '='
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (line.match(/^[\w\s]+=\s*$/)) {
+      return { valid: false, line: i + 1, message: `Incomplete assignment` };
+    }
+  }
+  
+  return { valid: true, line: null, message: null };
 }

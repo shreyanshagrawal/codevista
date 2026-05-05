@@ -38,7 +38,8 @@ export default function ControlBar({ onRun, onPause, onStep, onStepBackward, onR
           onClick={onRun}
           label={isIdle ? "▶ Run" : "▶ Resume"}
           primary
-          title={isIdle ? "Execute and visualize" : "Resume execution"}
+          disabled={state.syntaxError !== null || !state.code.trim()}
+          title={state.syntaxError ? "Fix syntax errors before running" : !state.code.trim() ? "Code is empty" : isIdle ? "Execute and visualize" : "Resume execution"}
         />
       )}
       {state.isPlaying && (
@@ -50,13 +51,22 @@ export default function ControlBar({ onRun, onPause, onStep, onStepBackward, onR
         />
       )}
 
+      {/* Stop */}
+      <CtrlBtn
+        id="btn-stop"
+        onClick={onReset}
+        label="⏹ Stop"
+        title="Stop execution and reset state"
+        disabled={isIdle}
+      />
+
       {/* Step backward */}
       <CtrlBtn
         id="btn-step-backward"
         onClick={onStepBackward}
         label="⏮ Prev"
-        disabled={state.isPlaying}
-        title="Step to previous instruction"
+        disabled={state.isPlaying || isIdle || state.currentStep === 0}
+        title="Step to previous instruction (Shift+F10)"
       />
 
       {/* Step forward */}
@@ -64,8 +74,8 @@ export default function ControlBar({ onRun, onPause, onStep, onStepBackward, onR
         id="btn-step"
         onClick={onStep}
         label="Next ⏭"
-        disabled={state.isPlaying}
-        title="Step to next instruction"
+        disabled={state.isPlaying || state.syntaxError !== null}
+        title="Step to next instruction (F10)"
       />
 
       {/* Reset */}
@@ -73,7 +83,7 @@ export default function ControlBar({ onRun, onPause, onStep, onStepBackward, onR
         id="btn-reset"
         onClick={onReset}
         label="↺ Reset"
-        title="Reset visualizer"
+        title="Clear visualizer state (Shift+F5)"
       />
 
       <div className="w-px h-6 shrink-0" style={{ background: 'var(--color-border)' }} />
@@ -113,23 +123,21 @@ export default function ControlBar({ onRun, onPause, onStep, onStepBackward, onR
         <span
           className={`w-2 h-2 rounded-full ${state.isPlaying ? 'animate-pulse-dot' : ''}`}
           style={{
-            background: state.isPlaying
-              ? 'var(--color-accent-2)'
-              : !isIdle
-                ? '#fcd34d'
-                : 'var(--color-text-muted)',
+            background: state.syntaxError
+              ? 'var(--color-accent-3)' // red for error
+              : state.isPlaying
+                ? 'var(--color-accent-2)'
+                : !isIdle
+                  ? '#fcd34d'
+                  : 'var(--color-text-muted)',
           }}
         />
         <span className="text-xs" style={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)' }}>
-          {state.isPlaying ? 'Playing' : !isIdle ? 'Paused' : 'Idle'}
+          {state.syntaxError ? 'Error' : state.isPlaying ? 'Playing' : !isIdle ? 'Paused' : 'Idle'}
         </span>
       </div>
 
-      {state.totalSteps > 0 && (
-        <span className="text-xs font-mono" style={{ color: 'var(--color-text-muted)' }}>
-          {state.currentStep + 1} / {state.totalSteps}
-        </span>
-      )}
+      {/* Removed redundant step counter */}
     </footer>
   );
 }

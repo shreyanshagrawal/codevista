@@ -98,7 +98,21 @@ export default function CodeEditorPanel() {
               aria-hidden="true"
             >
               {lines.map((line, i) => {
-                const isActive = activeLine === (i + 1);
+                const lineNum = i + 1;
+                const isActive = activeLine === lineNum;
+                const isError = state.syntaxError?.line === lineNum;
+                
+                let bg = 'transparent';
+                let borderLeft = '2px solid transparent';
+                
+                if (isError) {
+                  bg = 'rgba(239, 68, 68, 0.15)'; // red background
+                  borderLeft = '2px solid var(--color-accent-3)'; // red border
+                } else if (isActive) {
+                  bg = 'var(--color-bg-elevated)';
+                  borderLeft = '2px solid var(--color-accent)';
+                }
+
                 return (
                   <div
                     key={i}
@@ -108,8 +122,8 @@ export default function CodeEditorPanel() {
                       lineHeight: '1.5rem', 
                       fontSize: '0.8125rem', 
                       color: 'var(--color-text-secondary)',
-                      background: isActive ? 'var(--color-bg-elevated)' : 'transparent',
-                      borderLeft: isActive ? '2px solid var(--color-accent)' : '2px solid transparent',
+                      background: bg,
+                      borderLeft: borderLeft,
                       marginLeft: '-1rem', // Counteract padding to make background full width
                       paddingLeft: 'calc(1rem - 2px)', // minus border width
                       width: 'calc(100% + 2rem)'

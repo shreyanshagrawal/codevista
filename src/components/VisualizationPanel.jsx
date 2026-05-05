@@ -168,67 +168,83 @@ export default function VisualizationPanel({ graph }) {
         {graph.nodes.map(node => {
           const isActive = node.id === state.activeNodeId;
           
-          let shapeStyle = { borderRadius: '8px' }; // default process
+          let svgShape = null;
           if (node.type === NodeType.FUNCTION_DEF || node.type === NodeType.RETURN) {
-            shapeStyle = { borderRadius: '50px' }; // oval
+            // Oval
+            svgShape = (
+              <rect x="2" y="2" width="196" height="46" rx="23" ry="23" 
+                    fill={node.colors.bg} stroke={isActive ? node.colors.border : node.colors.border + '55'} strokeWidth="2" />
+            );
           } else if (node.type === NodeType.CONDITIONAL || node.type === NodeType.LOOP) {
-            shapeStyle = { clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)', padding: '25px 20px' }; // diamond
+            // Diamond
+            svgShape = (
+              <polygon points="100,2 198,50 100,98 2,50" 
+                       fill={node.colors.bg} stroke={isActive ? node.colors.border : node.colors.border + '55'} strokeWidth="2" />
+            );
           } else if (node.type === NodeType.CONSOLE) {
-            shapeStyle = { clipPath: 'polygon(10% 0%, 100% 0%, 90% 100%, 0% 100%)', padding: '10px 20px' }; // parallelogram
+            // Parallelogram
+            svgShape = (
+              <polygon points="20,2 198,2 180,48 2,48" 
+                       fill={node.colors.bg} stroke={isActive ? node.colors.border : node.colors.border + '55'} strokeWidth="2" />
+            );
+          } else {
+            // Process Rectangle
+            svgShape = (
+              <rect x="2" y="2" width="196" height="46" rx="4" ry="4" 
+                    fill={node.colors.bg} stroke={isActive ? node.colors.border : node.colors.border + '55'} strokeWidth="2" />
+            );
           }
 
           return (
             <div
               key={node.id}
               onClick={() => actions.setActiveNode(node.id)}
-              className="vis-node absolute flex flex-col justify-center items-center text-center cursor-pointer px-4 py-2"
+              className="vis-node absolute flex flex-col justify-center items-center text-center cursor-pointer"
               style={{
                 left: node.x,
                 top: node.y,
                 width: node.width || 200,
                 height: node.height || 50,
-                background: node.colors.bg,
-                border: `2px solid ${isActive ? node.colors.border : node.colors.border + '55'}`,
-                boxShadow: isActive
-                  ? `0 0 20px ${node.colors.border}55, inset 0 1px 0 rgba(255,255,255,0.06)`
-                  : '0 2px 8px rgba(0,0,0,0.4)',
                 transition: 'all 0.25s ease',
                 transform: isActive ? 'scale(1.04)' : 'scale(1)',
-                ...shapeStyle,
+                zIndex: isActive ? 10 : 1,
               }}
             >
+              <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox={`0 0 ${node.width || 200} ${node.height || 50}`}>
+                {svgShape}
+              </svg>
+
               {/* Active pulse ring */}
               {isActive && (
-                <span
-                  className="absolute inset-0 rounded-lg animate-ping"
-                  style={{ border: `1px solid ${node.colors.border}`, opacity: 0.3, pointerEvents: 'none' }}
-                />
+                <div className="absolute inset-0 rounded-lg animate-ping pointer-events-none" 
+                     style={{ border: `2px solid ${node.colors.border}`, opacity: 0.3 }} />
               )}
 
-              {/* Node type badge */}
-              <div className="flex items-center justify-center gap-1.5 mb-1 w-full">
-                <span
-                  className="text-xs px-1.5 py-0 rounded-full font-mono uppercase tracking-wider"
-                  style={{
-                    background: node.colors.border + '22',
-                    color: node.colors.label,
-                    fontSize: '0.55rem',
-                  }}
-                >
-                  {node.type.replace('_', ' ')}
-                </span>
-                <span className="text-xs" style={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)', fontSize: '0.55rem' }}>
-                  L{node.line}
-                </span>
-              </div>
+              {/* Node Content */}
+              <div className="relative z-10 flex flex-col justify-center items-center w-full px-8 pointer-events-none">
+                <div className="flex items-center justify-center gap-1.5 mb-1 w-full">
+                  <span
+                    className="text-xs px-1.5 py-0 rounded-full font-mono uppercase tracking-wider"
+                    style={{
+                      background: node.colors.border + '22',
+                      color: node.colors.label,
+                      fontSize: '0.55rem',
+                    }}
+                  >
+                    {node.type.replace('_', ' ')}
+                  </span>
+                  <span className="text-xs" style={{ color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)', fontSize: '0.55rem' }}>
+                    L{node.line}
+                  </span>
+                </div>
 
-              {/* Code label */}
-              <div
-                className="text-xs font-mono truncate w-full px-2"
-                style={{ color: node.colors.label, fontSize: '0.70rem', lineHeight: 1.2 }}
-                title={node.label}
-              >
-                {node.label}
+                <div
+                  className="text-xs font-mono truncate w-full"
+                  style={{ color: node.colors.label, fontSize: '0.70rem', lineHeight: 1.2 }}
+                  title={node.label}
+                >
+                  {node.label}
+                </div>
               </div>
             </div>
           );

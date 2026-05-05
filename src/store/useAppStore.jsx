@@ -26,13 +26,26 @@ print(sorted_nums)`,
   layout: { leftWidth: 380, rightWidth: 320 },
   algorithmMode: 'general', // 'general' | 'linkedList' | 'binaryTree' | 'recursion'
   breakpoints: new Set(),
+  syntaxError: null,
 };
 
 // ─── Reducer ──────────────────────────────────────────────────────────────────
 function reducer(state, action) {
   switch (action.type) {
     case 'SET_CODE':
-      return { ...state, code: action.payload };
+      if (state.code !== action.payload) {
+        return { 
+          ...state, 
+          code: action.payload,
+          isPlaying: false,
+          currentStep: 0,
+          totalSteps: 0,
+          steps: [],
+          visualizationData: null,
+          activeNodeId: null
+        };
+      }
+      return state;
     case 'SET_LANGUAGE':
       return { ...state, language: action.payload };
     case 'SET_PLAYING':
@@ -55,6 +68,8 @@ function reducer(state, action) {
       return { ...state, activeNodeId: action.payload };
     case 'SET_ALGORITHM_MODE':
       return { ...state, algorithmMode: action.payload };
+    case 'SET_SYNTAX_ERROR':
+      return { ...state, syntaxError: action.payload };
     case 'TOGGLE_BREAKPOINT': {
       const bp = new Set(state.breakpoints);
       bp.has(action.payload) ? bp.delete(action.payload) : bp.add(action.payload);
@@ -95,6 +110,7 @@ export function AppProvider({ children }) {
     clearDebug: useCallback(() => dispatch({ type: 'CLEAR_DEBUG' }), []),
     setActiveNode: useCallback((id) => dispatch({ type: 'SET_ACTIVE_NODE', payload: id }), []),
     setAlgorithmMode: useCallback((m) => dispatch({ type: 'SET_ALGORITHM_MODE', payload: m }), []),
+    setSyntaxError: useCallback((err) => dispatch({ type: 'SET_SYNTAX_ERROR', payload: err }), []),
     toggleBreakpoint: useCallback((line) => dispatch({ type: 'TOGGLE_BREAKPOINT', payload: line }), []),
     reset: useCallback(() => dispatch({ type: 'RESET' }), []),
   };

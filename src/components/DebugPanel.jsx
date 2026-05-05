@@ -30,7 +30,10 @@ export default function DebugPanel({ steps }) {
   const { state, actions } = useAppStore();
   const [activeTab, setActiveTab] = useState('Output');
   const logEndRef = useRef(null);
-  const currentStep = steps?.[state.currentStep] ?? null;
+  const currentStepIndex = steps && steps.length > 0 
+    ? Math.min(state.currentStep, steps.length - 1) 
+    : 0;
+  const currentStep = steps?.[currentStepIndex] ?? null;
 
   const handleClearLogs = useCallback(() => {
     actions.clearDebug();

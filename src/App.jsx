@@ -8,6 +8,7 @@ import VisualizationPanel from './components/VisualizationPanel';
 import LinkedListVisualizer from './components/LinkedListVisualizer';
 import TreeVisualizer from './components/TreeVisualizer';
 import RecursionVisualizer from './components/RecursionVisualizer';
+import OnboardingModal from './components/OnboardingModal';
 import { useAppStore } from './store/useAppStore';
 
 const DEFAULT_CODE = {
@@ -68,16 +69,58 @@ target = factorial(5)
 print(target)`
 };
 
+import { validateSyntax } from './engine/executionEngine';
+
 function AppShell() {
-  const { state } = useAppStore();
+  const { state, actions } = useAppStore();
   const { graph, steps, play, pause, next, prev, reset } = useVisualizer();
   const [loading, setLoading] = useState(true);
+
+  // Validate syntax automatically when code changes
+  useEffect(() => {
+    const validation = validateSyntax(state.code);
+    if (!validation.valid) {
+      actions.setSyntaxError({ line: validation.line, message: validation.message });
+    } else {
+      actions.setSyntaxError(null);
+    }
+  }, [state.code, actions]);
 
   useEffect(() => {
     // Artificial app initialization delay for loading state
     const t = setTimeout(() => setLoading(false), 800);
     return () => clearTimeout(t);
   }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Don't trigger if user is typing in the editor
+      if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') {
+        // Exception: allow F5/F10 to work even while focused in editor
+        if (e.key !== 'F5' && e.key !== 'F10') return;
+      }
+
+      if (e.key === 'F5') {
+        e.preventDefault();
+        if (e.shiftKey) reset();
+        else if (state.isPlaying) pause();
+        else {
+          // Only play if syntax is valid
+          const v = validateSyntax(state.code);
+          if (v.valid) play();
+        }
+      } else if (e.key === 'F10') {
+        e.preventDefault();
+        if (!state.isPlaying) {
+          if (e.shiftKey) prev();
+          else next();
+        }
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [state.isPlaying, play, pause, next, prev, reset, state.code]);
 
   if (loading) {
     return (
@@ -92,6 +135,7 @@ function AppShell() {
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--color-bg-base)' }}>
+      <OnboardingModal />
       {/* Top navbar */}
       <TopNav />
 
@@ -114,11 +158,26 @@ function AppShell() {
           {state.algorithmMode === 'recursion' && <RecursionVisualizer step={steps[state.currentStep]} />}
         </main>
 
-        {/* Right: Debug Panel (hidden on small screens, stacked on med) */}
+        {/* Right: Debug Panel */}
         <div className="lg:h-full lg:block hidden border-l shrink-0" style={{ borderColor: 'var(--color-border)' }}>
           <DebugPanel steps={steps} />
         </div>
       </div>
+
+      {/* Global Step Explanation Panel */}
+      {state.steps && state.steps[state.currentStep]?.data?.message && (
+        <div 
+          className="absolute bottom-[60px] left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-full text-sm font-mono shadow-xl transition-all border w-11/12 max-w-2xl text-center z-50 animate-fade-in"
+          style={{
+            background: 'var(--color-bg-elevated)',
+            borderColor: 'var(--color-border-bright)',
+            color: 'var(--color-text-secondary)',
+            boxShadow: '0 -4px 20px rgba(0,0,0,0.5)'
+          }}
+        >
+          {state.steps[state.currentStep].data.message}
+        </div>
+      )}
 
       {/* Bottom: Control bar */}
       <ControlBar
@@ -175,10 +234,10 @@ function TopNav() {
 function CanvasToolbar() {
   const { state, actions } = useAppStore();
   const modes = [
-    { value: 'general',    label: '⬡ General Code' },
-    { value: 'linkedList', label: '⧖ Linked List' },
-    { value: 'binaryTree', label: '⊳ Binary Tree' },
-    { value: 'recursion',  label: '▤ Recursion' },
+    { value: 'general',    label: '⬡ Flowchart', tooltip: 'Visualize generic code flow into an AST-like flowchart graph.' },
+    { value: 'linkedList', label: '⧖ Linked List', tooltip: 'Simulate linked list traversals. Expects an array input.' },
+    { value: 'binaryTree', label: '⊳ Binary Tree', tooltip: 'Visualize tree traversals (e.g. Inorder). Expects an array input.' },
+    { value: 'recursion',  label: '▤ Recursion', tooltip: 'Visualize call stack for a recursive function like Factorial.' },
   ];
 
   return (
@@ -194,9 +253,11 @@ function CanvasToolbar() {
         <button
           key={m.value}
           id={`mode-${m.value}`}
+          title={m.tooltip}
           onClick={() => {
             actions.setAlgorithmMode(m.value);
             actions.setCode(DEFAULT_CODE[m.value]);
+            actions.clearDebug();
             actions.reset(); // reset engine when switching mode
           }}
           className="text-xs px-3 py-1 rounded transition-all duration-150"

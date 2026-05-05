@@ -94,18 +94,6 @@ export default function RecursionVisualizer({ step }) {
         </div>
       )}
 
-      {/* Step Message Floating at Bottom */}
-      <div 
-        className="absolute bottom-10 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-full text-sm font-mono shadow-xl transition-all border w-11/12 max-w-lg text-center"
-        style={{
-          background: 'var(--color-bg-elevated)',
-          borderColor: 'var(--color-border-bright)',
-          color: 'var(--color-text-secondary)'
-        }}
-      >
-        {message}
-      </div>
-      
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { useRef, useCallback, useEffect } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import { formatTimestamp } from '../utils/formatters';
-import { parseToGraph, buildExecutionSteps } from './executionEngine';
+import { parseToGraph, buildExecutionSteps, validateSyntax } from './executionEngine';
 import { generateLinkedListTraversalSteps } from './linkedListEngine';
 import { generateBinaryTreeSteps } from './binaryTreeEngine';
 import { generateRecursionSteps } from './recursionEngine';
@@ -24,11 +24,23 @@ export function useVisualizer() {
   const reset = useCallback(() => {
     clearTimer();
     actions.reset();
+    actions.setSyntaxError(null);
   }, [clearTimer, actions]);
 
   const generateSteps = useCallback(() => {
     actions.clearDebug();
     actions.reset();
+    actions.setSyntaxError(null);
+
+    const validation = validateSyntax(state.code);
+    if (!validation.valid) {
+      actions.setSyntaxError({ line: validation.line, message: validation.message });
+      actions.appendDebug({ type: 'error', time: formatTimestamp(), text: `Syntax Error at line ${validation.line}: ${validation.message}` });
+      actions.setVisualizationData({ nodes: [], edges: [] });
+      actions.setStepsData([]);
+      actions.setTotalSteps(0);
+      return { g: { nodes: [], edges: [] }, s: [] };
+    }
 
     let g = null;
     let s = [];
@@ -43,28 +55,34 @@ export function useVisualizer() {
       // fallback to default
     }
 
-    if (state.algorithmMode === 'linkedList') {
-      s = generateLinkedListTraversalSteps(arr);
-      g = { nodes: [], edges: [] };
-    } else if (state.algorithmMode === 'binaryTree') {
-      s = generateBinaryTreeSteps(arr);
-      g = { nodes: [], edges: [] };
-    } else if (state.algorithmMode === 'recursion') {
-      // Look for a number inside factorial(n) or just use the first item in array
-      let n = arr.length > 0 ? arr[0] : 5;
-      try {
-        const numMatch = state.code.match(/factorial\((\d+)\)/);
-        if (numMatch) n = parseInt(numMatch[1], 10);
-      } catch(e) {}
-      
-      // Keep it reasonable to prevent infinite loops
-      n = Math.max(1, Math.min(n, 12));
-      s = generateRecursionSteps(n);
-      g = { nodes: [], edges: [] };
-    } else if (state.algorithmMode === 'general') {
-      g = parseToGraph(state.code);
-      s = buildExecutionSteps(g);
-    } else {
+    try {
+      if (state.algorithmMode === 'linkedList') {
+        s = generateLinkedListTraversalSteps(arr);
+        g = { nodes: [], edges: [] };
+      } else if (state.algorithmMode === 'binaryTree') {
+        s = generateBinaryTreeSteps(arr);
+        g = { nodes: [], edges: [] };
+      } else if (state.algorithmMode === 'recursion') {
+        // Look for a number inside factorial(n) or just use the first item in array
+        let n = arr.length > 0 ? arr[0] : 5;
+        try {
+          const numMatch = state.code.match(/factorial\((\d+)\)/);
+          if (numMatch) n = parseInt(numMatch[1], 10);
+        } catch(e) {}
+        
+        // Keep it reasonable to prevent infinite loops
+        n = Math.max(1, Math.min(n, 12));
+        s = generateRecursionSteps(n);
+        g = { nodes: [], edges: [] };
+      } else if (state.algorithmMode === 'general') {
+        g = parseToGraph(state.code);
+        s = buildExecutionSteps(g);
+      } else {
+        s = [];
+        g = { nodes: [], edges: [] };
+      }
+    } catch (error) {
+      actions.appendDebug({ type: 'error', time: formatTimestamp(), text: error.message || String(error) });
       s = [];
       g = { nodes: [], edges: [] };
     }
