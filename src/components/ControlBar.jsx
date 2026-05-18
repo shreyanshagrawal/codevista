@@ -9,7 +9,7 @@ export default function ControlBar({ onRun, onPause, onStep, onStepBackward, onR
 
   return (
     <footer
-      className="flex items-center gap-3 px-5 py-2.5 border-t shrink-0 animate-slide-bottom"
+      className="flex items-center gap-3 px-5 py-2.5 border-t shrink-0 animate-slide-bottom overflow-x-auto w-full"
       style={{
         borderColor: 'var(--color-border)',
         background: 'var(--color-bg-base)',
@@ -99,7 +99,7 @@ export default function ControlBar({ onRun, onPause, onStep, onStepBackward, onR
               key={s}
               id={`btn-speed-${s}`}
               onClick={() => actions.setSpeed(s)}
-              className="text-xs px-2 py-0.5 rounded transition-all"
+              className="text-xs px-2 py-0.5 rounded transition-all duration-200 hover:scale-110 active:scale-95"
               style={{
                 fontFamily: 'var(--font-mono)',
                 cursor: 'pointer',
@@ -149,7 +149,7 @@ function CtrlBtn({ id, onClick, label, primary, disabled, title }) {
       onClick={onClick}
       disabled={disabled}
       title={title}
-      className="text-xs px-3 py-1.5 rounded font-medium transition-all duration-150"
+      className={`text-xs px-3 py-1.5 rounded font-medium transition-all duration-200 shrink-0 ${disabled ? '' : 'hover:-translate-y-0.5 hover:shadow-md active:scale-95'}`}
       style={{
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.4 : 1,
@@ -159,7 +159,7 @@ function CtrlBtn({ id, onClick, label, primary, disabled, title }) {
           ? 'linear-gradient(135deg, var(--color-accent), #5b54e8)'
           : 'var(--color-bg-elevated)',
         color: primary ? '#fff' : 'var(--color-text-secondary)',
-        boxShadow: primary ? '0 2px 12px var(--color-accent-glow)' : 'none',
+        boxShadow: primary && !disabled ? '0 4px 12px var(--color-accent-glow)' : 'none',
       }}
     >
       {label}

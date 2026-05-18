@@ -9,6 +9,8 @@ import LinkedListVisualizer from './components/LinkedListVisualizer';
 import TreeVisualizer from './components/TreeVisualizer';
 import RecursionVisualizer from './components/RecursionVisualizer';
 import OnboardingModal from './components/OnboardingModal';
+import SettingsPage from './components/SettingsPage';
+import BackgroundEffects from './components/BackgroundEffects';
 import { useAppStore } from './store/useAppStore';
 
 const DEFAULT_CODE = {
@@ -86,6 +88,18 @@ function AppShell() {
     }
   }, [state.code, actions]);
 
+  // Apply theme and UI settings on change
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', state.theme);
+    localStorage.setItem('codevista-theme', state.theme);
+    
+    if (state.settings) {
+      document.documentElement.setAttribute('data-corners', state.settings.uiCorners || 'rounded');
+      document.documentElement.setAttribute('data-density', state.settings.compactMode ? 'compact' : 'normal');
+      document.documentElement.setAttribute('data-font', state.settings.uiFont || 'sans');
+    }
+  }, [state.theme, state.settings?.uiCorners, state.settings?.compactMode, state.settings?.uiFont]);
+
   useEffect(() => {
     // Artificial app initialization delay for loading state
     const t = setTimeout(() => setLoading(false), 800);
@@ -134,20 +148,30 @@ function AppShell() {
   }
 
   return (
-    <div className="flex flex-col h-full" style={{ background: 'var(--color-bg-base)' }}>
+    <div className="flex flex-col h-full relative" style={{ background: 'var(--color-bg-base)' }}>
       <OnboardingModal />
+      <BackgroundEffects />
       {/* Top navbar */}
       <TopNav />
 
-      {/* Main workspace */}
-      <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
-        {/* Left: Code Editor (hidden on extremely small screens, or stacked) */}
-        <div className="lg:h-full lg:block hidden border-r shrink-0" style={{ borderColor: 'var(--color-border)' }}>
-          <CodeEditorPanel key={state.algorithmMode} />
+      {state.activePage === 'settings' ? (
+        <SettingsPage />
+      ) : (
+        <>
+          {/* Main workspace */}
+          <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
+        {/* Left: Code Editor */}
+        <div 
+          className="lg:h-full h-[40vh] border-b lg:border-b-0 lg:border-r shrink-0 w-full lg:w-auto flex flex-col" 
+          style={{ borderColor: 'var(--color-border)', flexBasis: 'auto' }}
+        >
+          <div className="w-full h-full lg:w-auto" style={{ maxWidth: '100%' }}>
+            <CodeEditorPanel key={state.algorithmMode} />
+          </div>
         </div>
 
         {/* Center: Visualization canvas */}
-        <main className="flex-1 flex flex-col overflow-hidden">
+        <main className="flex-1 flex flex-col min-h-[50vh] overflow-hidden">
           {/* Canvas toolbar */}
           <CanvasToolbar />
 
@@ -159,7 +183,10 @@ function AppShell() {
         </main>
 
         {/* Right: Debug Panel */}
-        <div className="lg:h-full lg:block hidden border-l shrink-0" style={{ borderColor: 'var(--color-border)' }}>
+        <div 
+          className="lg:h-full h-[30vh] border-t lg:border-t-0 lg:border-l shrink-0 w-full lg:w-auto flex flex-col" 
+          style={{ borderColor: 'var(--color-border)' }}
+        >
           <DebugPanel steps={steps} />
         </div>
       </div>
@@ -187,11 +214,15 @@ function AppShell() {
         onStepBackward={prev}
         onReset={reset}
       />
+        </>
+      )}
     </div>
   );
 }
 
 function TopNav() {
+  const { state, actions } = useAppStore();
+
   return (
     <header
       className="flex items-center justify-between px-5 py-2.5 border-b shrink-0"
@@ -227,6 +258,20 @@ function TopNav() {
         </div>
       </div>
 
+      <div className="flex items-center gap-2">
+        <button 
+          onClick={() => actions.setActivePage(state.activePage === 'settings' ? 'workspace' : 'settings')}
+          className="text-sm flex items-center gap-2 px-3 py-1.5 rounded transition-colors"
+          style={{ 
+            color: state.activePage === 'settings' ? 'var(--color-accent)' : 'var(--color-text-muted)',
+            background: state.activePage === 'settings' ? 'var(--color-accent-glow)' : 'transparent',
+            border: state.activePage === 'settings' ? '1px solid var(--color-accent)' : '1px solid transparent'
+          }}
+        >
+          <span className="text-lg leading-none" style={{ marginTop: '-2px' }}>⚙</span> 
+          <span className="hidden sm:inline font-medium">Settings</span>
+        </button>
+      </div>
     </header>
   );
 }
@@ -260,7 +305,7 @@ function CanvasToolbar() {
             actions.clearDebug();
             actions.reset(); // reset engine when switching mode
           }}
-          className="text-xs px-3 py-1 rounded transition-all duration-150"
+          className="text-xs px-3 py-1 rounded transition-all duration-200 hover:scale-105 active:scale-95"
           style={{
             cursor: 'pointer',
             border: '1px solid',

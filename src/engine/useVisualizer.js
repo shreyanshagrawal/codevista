@@ -14,9 +14,11 @@ export function useVisualizer() {
   const { state, actions } = useAppStore();
   const timerRef = useRef(null);
 
+  const initialStepRef = useRef(0);
+
   const clearTimer = useCallback(() => {
     if (timerRef.current) {
-      clearInterval(timerRef.current);
+      clearTimeout(timerRef.current);
       timerRef.current = null;
     }
   }, []);
@@ -102,46 +104,62 @@ export function useVisualizer() {
       currentSteps = s;
     }
     
+    initialStepRef.current = state.currentStep;
     actions.setIsPlaying(true);
+  }, [state.steps, state.currentStep, generateSteps, actions]);
+
+  const pause = useCallback(() => {
+    actions.setIsPlaying(false);
+  }, [actions]);
+
+  // Effect to handle the playback loop
+  useEffect(() => {
+    if (!state.isPlaying) return;
+
+    let currentSteps = state.steps;
+    if (!currentSteps || currentSteps.length === 0) return;
+
+    const stepIndex = state.currentStep;
+    
+    if (stepIndex >= currentSteps.length) {
+      actions.setIsPlaying(false);
+      return;
+    }
 
     const interval = Math.round(1200 / state.speed);
-    
-    // We need to keep track of the current step locally in the interval
-    // because state.currentStep inside the closure might be stale
-    let stepIndex = state.currentStep;
-    const initialStep = state.currentStep;
 
-    timerRef.current = setInterval(() => {
-      if (stepIndex >= currentSteps.length) {
-        clearTimer();
-        actions.setIsPlaying(false);
-        return;
-      }
-
+    timerRef.current = setTimeout(() => {
       const step = currentSteps[stepIndex];
       
       // BREAKPOINT CHECK
-      if (stepIndex > initialStep && state.breakpoints.has(step.line)) {
-        clearTimer();
+      if (stepIndex > initialStepRef.current && state.breakpoints.has(step.line)) {
         actions.setIsPlaying(false);
         return;
       }
 
-      actions.setCurrentStep(stepIndex);
+      // advance to next step
+      actions.setCurrentStep(stepIndex + 1);
       actions.setActiveNode(step.data.nodeId);
 
       if (step.data.output) {
         actions.appendDebug({ type: 'log', time: formatTimestamp(), text: step.data.output });
       }
 
-      stepIndex++;
     }, interval);
-  }, [state.steps, state.currentStep, state.speed, state.breakpoints, generateSteps, clearTimer, actions]);
 
-  const pause = useCallback(() => {
-    clearTimer();
-    actions.setIsPlaying(false);
-  }, [clearTimer, actions]);
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, [
+    state.isPlaying, 
+    state.speed, 
+    state.currentStep, 
+    state.steps, 
+    state.breakpoints, 
+    actions
+  ]);
 
   const nextStep = useCallback(() => {
     let currentSteps = state.steps;
