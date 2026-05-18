@@ -20,7 +20,7 @@ export default function ControlBar({ onRun, onPause, onStep, onStepBackward, onR
       <div className="flex items-center gap-2 mr-2">
         <div
           className="w-6 h-6 rounded flex items-center justify-center text-sm font-bold"
-          style={{ background: 'linear-gradient(135deg, var(--color-accent), var(--color-accent-2))', color: '#fff' }}
+          style={{ background: 'linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-2) 100%)', color: '#fff' }}
         >
           ⬡
         </div>
@@ -156,7 +156,7 @@ function CtrlBtn({ id, onClick, label, primary, disabled, title }) {
         border: '1px solid',
         borderColor: primary ? 'var(--color-accent)' : 'var(--color-border-bright)',
         background: primary
-          ? 'linear-gradient(135deg, var(--color-accent), #5b54e8)'
+          ? 'var(--color-accent)'
           : 'var(--color-bg-elevated)',
         color: primary ? '#fff' : 'var(--color-text-secondary)',
         boxShadow: primary && !disabled ? '0 4px 12px var(--color-accent-glow)' : 'none',
