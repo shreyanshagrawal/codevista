@@ -1,4 +1,4 @@
-import { createContext, useContext, useReducer, useCallback } from 'react';
+import { createContext, useContext, useReducer, useCallback, useMemo } from 'react';
 
 // ─── Initial State ────────────────────────────────────────────────────────────
 const initialState = {
@@ -22,11 +22,29 @@ print(sorted_nums)`,
   visualizationData: null,
   debugOutput: [],
   activeNodeId: null,
-  theme: 'dark',
+  theme: localStorage.getItem('codevista-theme') || 'default',
   layout: { leftWidth: 380, rightWidth: 320 },
   algorithmMode: 'general', // 'general' | 'linkedList' | 'binaryTree' | 'recursion'
   breakpoints: new Set(),
   syntaxError: null,
+  activePage: 'workspace', // 'workspace' | 'settings'
+  settings: {
+    // General
+    defaultSpeed: 1,
+    soundEffects: false,
+    autoScroll: true,
+    compactMode: false,
+    // Visualization
+    defaultArraySize: 7,
+    showStepCounter: true,
+    showOperationCounters: true,
+    smoothAnimations: true,
+    particleEffects: false,
+    // Accessibility
+    fontSize: 'medium', // 'small', 'medium', 'large'
+    highContrast: false,
+    reducedMotion: false,
+  }
 };
 
 // ─── Reducer ──────────────────────────────────────────────────────────────────
@@ -47,8 +65,10 @@ function reducer(state, action) {
       }
       return state;
     case 'SET_LANGUAGE':
+      if (state.language === action.payload) return state;
       return { ...state, language: action.payload };
     case 'SET_PLAYING':
+      if (state.isPlaying === action.payload) return state;
       return { ...state, isPlaying: action.payload };
     case 'SET_STEP':
       return { ...state, currentStep: action.payload };
@@ -65,16 +85,31 @@ function reducer(state, action) {
     case 'CLEAR_DEBUG':
       return { ...state, debugOutput: [] };
     case 'SET_ACTIVE_NODE':
+      if (state.activeNodeId === action.payload) return state;
       return { ...state, activeNodeId: action.payload };
     case 'SET_ALGORITHM_MODE':
+      if (state.algorithmMode === action.payload) return state;
       return { ...state, algorithmMode: action.payload };
     case 'SET_SYNTAX_ERROR':
+      // deep compare syntax error if possible, or simple check
+      if (state.syntaxError === action.payload) return state;
+      if (state.syntaxError && action.payload && state.syntaxError.message === action.payload.message && state.syntaxError.line === action.payload.line) return state;
       return { ...state, syntaxError: action.payload };
     case 'TOGGLE_BREAKPOINT': {
       const bp = new Set(state.breakpoints);
       bp.has(action.payload) ? bp.delete(action.payload) : bp.add(action.payload);
       return { ...state, breakpoints: bp };
     }
+    case 'SET_ACTIVE_PAGE':
+      if (state.activePage === action.payload) return state;
+      return { ...state, activePage: action.payload };
+    case 'SET_THEME':
+      if (state.theme === action.payload) return state;
+      return { ...state, theme: action.payload };
+    case 'SET_SETTINGS':
+      return { ...state, settings: { ...state.settings, ...action.payload } };
+    case 'RESET_SETTINGS':
+      return { ...state, settings: initialState.settings };
     case 'RESET':
       return {
         ...state,
@@ -97,23 +132,27 @@ const AppContext = createContext(null);
 export function AppProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
-  const actions = {
-    setCode: useCallback((code) => dispatch({ type: 'SET_CODE', payload: code }), []),
-    setLanguage: useCallback((lang) => dispatch({ type: 'SET_LANGUAGE', payload: lang }), []),
-    setIsPlaying: useCallback((v) => dispatch({ type: 'SET_PLAYING', payload: v }), []),
-    setCurrentStep: useCallback((n) => dispatch({ type: 'SET_STEP', payload: n }), []),
-    setTotalSteps: useCallback((n) => dispatch({ type: 'SET_TOTAL_STEPS', payload: n }), []),
-    setSpeed: useCallback((s) => dispatch({ type: 'SET_SPEED', payload: s }), []),
-    setStepsData: useCallback((s) => dispatch({ type: 'SET_STEPS_DATA', payload: s }), []),
-    setVisualizationData: useCallback((d) => dispatch({ type: 'SET_VISUALIZATION_DATA', payload: d }), []),
-    appendDebug: useCallback((msg) => dispatch({ type: 'APPEND_DEBUG', payload: msg }), []),
-    clearDebug: useCallback(() => dispatch({ type: 'CLEAR_DEBUG' }), []),
-    setActiveNode: useCallback((id) => dispatch({ type: 'SET_ACTIVE_NODE', payload: id }), []),
-    setAlgorithmMode: useCallback((m) => dispatch({ type: 'SET_ALGORITHM_MODE', payload: m }), []),
-    setSyntaxError: useCallback((err) => dispatch({ type: 'SET_SYNTAX_ERROR', payload: err }), []),
-    toggleBreakpoint: useCallback((line) => dispatch({ type: 'TOGGLE_BREAKPOINT', payload: line }), []),
-    reset: useCallback(() => dispatch({ type: 'RESET' }), []),
-  };
+  const actions = useMemo(() => ({
+    setCode: (code) => dispatch({ type: 'SET_CODE', payload: code }),
+    setLanguage: (lang) => dispatch({ type: 'SET_LANGUAGE', payload: lang }),
+    setIsPlaying: (v) => dispatch({ type: 'SET_PLAYING', payload: v }),
+    setCurrentStep: (n) => dispatch({ type: 'SET_STEP', payload: n }),
+    setTotalSteps: (n) => dispatch({ type: 'SET_TOTAL_STEPS', payload: n }),
+    setSpeed: (s) => dispatch({ type: 'SET_SPEED', payload: s }),
+    setStepsData: (s) => dispatch({ type: 'SET_STEPS_DATA', payload: s }),
+    setVisualizationData: (d) => dispatch({ type: 'SET_VISUALIZATION_DATA', payload: d }),
+    appendDebug: (msg) => dispatch({ type: 'APPEND_DEBUG', payload: msg }),
+    clearDebug: () => dispatch({ type: 'CLEAR_DEBUG' }),
+    setActiveNode: (id) => dispatch({ type: 'SET_ACTIVE_NODE', payload: id }),
+    setAlgorithmMode: (m) => dispatch({ type: 'SET_ALGORITHM_MODE', payload: m }),
+    setSyntaxError: (err) => dispatch({ type: 'SET_SYNTAX_ERROR', payload: err }),
+    toggleBreakpoint: (line) => dispatch({ type: 'TOGGLE_BREAKPOINT', payload: line }),
+    setActivePage: (p) => dispatch({ type: 'SET_ACTIVE_PAGE', payload: p }),
+    setTheme: (t) => dispatch({ type: 'SET_THEME', payload: t }),
+    updateSettings: (s) => dispatch({ type: 'SET_SETTINGS', payload: s }),
+    resetSettings: () => dispatch({ type: 'RESET_SETTINGS' }),
+    reset: () => dispatch({ type: 'RESET' }),
+  }), [dispatch]);
 
   return (
     <AppContext.Provider value={{ state, actions }}>

@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./themes.css";
 
 @theme {
   --color-bg-base: #0d0f14;
@@ -20,7 +21,7 @@
   --color-syntax-comment: #4a5268;
   --color-syntax-function: #60a5fa;
   --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
-  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-sans: var(--font-primary, 'Inter', system-ui, sans-serif);
 }
 
 *, *::before, *::after {

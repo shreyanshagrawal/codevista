@@ -42,11 +42,10 @@ export default function DebugPanel({ steps }) {
 
   return (
     <aside
-      className="flex flex-col h-full border-l animate-slide-right"
+      className="flex flex-col h-full border-t lg:border-t-0 lg:border-l animate-slide-right w-full lg:w-[var(--panel-width)] lg:max-w-[480px]"
       style={{
-        width: state.layout.rightWidth,
+        '--panel-width': `${state.layout.rightWidth}px`,
         minWidth: 260,
-        maxWidth: 480,
         borderColor: 'var(--color-border)',
         background: 'var(--color-bg-panel)',
       }}
@@ -70,7 +69,7 @@ export default function DebugPanel({ steps }) {
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className="px-3 py-2 text-xs transition-all relative"
+            className="px-3 py-2 text-xs transition-all relative hover:bg-white/5 active:bg-white/10"
             style={{
               color: activeTab === tab ? 'var(--color-accent)' : 'var(--color-text-muted)',
               background: 'transparent',
@@ -197,7 +196,7 @@ export default function DebugPanel({ steps }) {
         >
           <button
             onClick={handleClearLogs}
-            className="text-xs px-3 py-1 rounded transition-all hover:opacity-80"
+            className="text-xs px-3 py-1.5 rounded transition-all duration-200 hover:opacity-100 hover:scale-[1.02] active:scale-95"
             style={{
               background: 'var(--color-bg-elevated)',
               border: '1px solid var(--color-border-bright)',

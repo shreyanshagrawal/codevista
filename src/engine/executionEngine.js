@@ -22,14 +22,14 @@ export const NodeType = {
 };
 
 const NODE_COLORS = {
-  [NodeType.FUNCTION_DEF]:  { bg: '#1e1b4b', border: '#6c63ff', label: '#a5b4fc' },
-  [NodeType.FUNCTION_CALL]: { bg: '#0f2030', border: '#0ea5e9', label: '#7dd3fc' },
-  [NodeType.CONDITIONAL]:   { bg: '#1c1108', border: '#f59e0b', label: '#fcd34d' },
-  [NodeType.LOOP]:          { bg: '#0a1f12', border: '#10b981', label: '#6ee7b7' },
-  [NodeType.ASSIGNMENT]:    { bg: '#1a0f1f', border: '#a855f7', label: '#d8b4fe' },
-  [NodeType.RETURN]:        { bg: '#1f0a0a', border: '#ef4444', label: '#fca5a5' },
-  [NodeType.EXPRESSION]:    { bg: '#111318', border: '#374151', label: '#9ca3af' },
-  [NodeType.CONSOLE]:       { bg: '#061918', border: '#00d4aa', label: '#99f6e4' },
+  [NodeType.FUNCTION_DEF]:  { bg: 'var(--color-bg-elevated)', border: 'var(--color-accent)', label: 'var(--color-text-primary)' },
+  [NodeType.FUNCTION_CALL]: { bg: 'var(--color-bg-elevated)', border: 'var(--color-accent-2)', label: 'var(--color-text-primary)' },
+  [NodeType.CONDITIONAL]:   { bg: 'var(--color-bg-elevated)', border: 'var(--color-syntax-number)', label: 'var(--color-text-primary)' },
+  [NodeType.LOOP]:          { bg: 'var(--color-bg-elevated)', border: 'var(--color-syntax-string)', label: 'var(--color-text-primary)' },
+  [NodeType.ASSIGNMENT]:    { bg: 'var(--color-bg-elevated)', border: 'var(--color-syntax-keyword)', label: 'var(--color-text-primary)' },
+  [NodeType.RETURN]:        { bg: 'var(--color-bg-elevated)', border: 'var(--color-accent-3)', label: 'var(--color-text-primary)' },
+  [NodeType.EXPRESSION]:    { bg: 'var(--color-bg-elevated)', border: 'var(--color-text-muted)', label: 'var(--color-text-primary)' },
+  [NodeType.CONSOLE]:       { bg: 'var(--color-bg-elevated)', border: 'var(--color-accent-2)', label: 'var(--color-text-primary)' },
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -136,19 +136,17 @@ export function parseToGraph(code) {
  * Top-down hierarchical layout.
  */
 function layoutGraph({ nodes, edges }) {
-  const ROW_HEIGHT = 100;
-  const COL_WIDTH = 80;
-  const V_PAD = 40;
+  const ROW_HEIGHT = 160;
+  const COL_WIDTH = 120;
+  const V_PAD = 80;
 
   const yIndices = {};
 
   nodes.forEach((node) => {
     if (yIndices[node.xOffset] === undefined) yIndices[node.xOffset] = 0;
     
-    // indent determines horizontal shift within its column
-    const col = Math.floor(node.indent / 2);
-    
-    node.x = node.xOffset + col * COL_WIDTH;
+    // Remove indentation shift to force a perfectly linear vertical flowchart
+    node.x = node.xOffset;
     node.y = V_PAD + yIndices[node.xOffset] * ROW_HEIGHT;
     
     yIndices[node.xOffset]++;

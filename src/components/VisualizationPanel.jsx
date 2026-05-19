@@ -2,8 +2,6 @@ import { useRef, useEffect, useCallback, useState } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import { NodeType } from '../engine/executionEngine';
 
-const EDGE_COLOR = 'rgba(108, 99, 255, 0.35)';
-const EDGE_ACTIVE_COLOR = 'rgba(0, 212, 170, 0.8)';
 
 const TYPE_ICONS = {
   [NodeType.FUNCTION_DEF]:  '⨍',
@@ -41,6 +39,10 @@ export default function VisualizationPanel({ graph }) {
     ctx.translate(viewOffset.x, viewOffset.y);
     ctx.scale(scale, scale);
 
+    const computedStyle = getComputedStyle(document.documentElement);
+    const accentColor = computedStyle.getPropertyValue('--color-accent').trim() || '#6c63ff';
+    const accentColor2 = computedStyle.getPropertyValue('--color-accent-2').trim() || '#00d4aa';
+
     const nodeMap = new Map(graph.nodes.map(n => [n.id, n]));
 
     // Draw edges
@@ -57,34 +59,40 @@ export default function VisualizationPanel({ graph }) {
       const isActive = from.id === state.activeNodeId || to.id === state.activeNodeId;
 
       ctx.beginPath();
-      ctx.strokeStyle = isActive ? EDGE_ACTIVE_COLOR : EDGE_COLOR;
+      ctx.strokeStyle = isActive ? accentColor2 : accentColor;
+      ctx.globalAlpha = isActive ? 0.8 : 0.35;
       ctx.lineWidth = isActive ? 2 : 1;
       ctx.setLineDash(isActive ? [] : [4, 4]);
 
-      // Bezier curve
+      let endAngle = 0;
+
       if (edge.isLoop) {
-        // Draw loop back upward with a wide arc
-        const cpX = Math.max(fromX, toX) + 150;
+        // Draw loop back upward with a wider arc
+        const cpX = Math.max(fromX, toX) + 250;
         ctx.moveTo(fromX, fromY);
-        ctx.bezierCurveTo(cpX, fromY + 50, cpX, toY - 50, toX, toY);
+        ctx.bezierCurveTo(cpX, fromY + 80, cpX, toY - 80, toX, toY);
+        // Tangent at the end of the bezier curve
+        endAngle = Math.atan2(toY - (toY - 80), toX - cpX);
       } else {
-        // Top-down curve
-        const cpY = (fromY + toY) / 2;
+        // Straight lines (diagonal for branches, vertical otherwise)
         ctx.moveTo(fromX, fromY);
-        ctx.bezierCurveTo(fromX, cpY, toX, cpY, toX, toY);
+        ctx.lineTo(toX, toY);
+        endAngle = Math.atan2(toY - fromY, toX - fromX);
       }
       ctx.stroke();
 
       // Arrowhead
-      const angle = Math.atan2(toY - fromY, toX - fromX);
       ctx.setLineDash([]);
-      ctx.fillStyle = isActive ? EDGE_ACTIVE_COLOR : EDGE_COLOR;
+      ctx.fillStyle = isActive ? accentColor2 : accentColor;
       ctx.beginPath();
       ctx.moveTo(toX, toY);
-      ctx.lineTo(toX - 8 * Math.cos(angle - 0.4), toY - 8 * Math.sin(angle - 0.4));
-      ctx.lineTo(toX - 8 * Math.cos(angle + 0.4), toY - 8 * Math.sin(angle + 0.4));
+      ctx.lineTo(toX - 8 * Math.cos(endAngle - 0.4), toY - 8 * Math.sin(endAngle - 0.4));
+      ctx.lineTo(toX - 8 * Math.cos(endAngle + 0.4), toY - 8 * Math.sin(endAngle + 0.4));
       ctx.closePath();
       ctx.fill();
+      
+      // Reset alpha
+      ctx.globalAlpha = 1.0;
     });
 
     ctx.restore();
@@ -173,25 +181,25 @@ export default function VisualizationPanel({ graph }) {
             // Oval
             svgShape = (
               <rect x="2" y="2" width="196" height="46" rx="23" ry="23" 
-                    fill={node.colors.bg} stroke={isActive ? node.colors.border : node.colors.border + '55'} strokeWidth="2" />
+                    fill={node.colors.bg} stroke={node.colors.border} strokeOpacity={isActive ? 1 : 0.3} strokeWidth="2" />
             );
           } else if (node.type === NodeType.CONDITIONAL || node.type === NodeType.LOOP) {
             // Diamond
             svgShape = (
               <polygon points="100,2 198,50 100,98 2,50" 
-                       fill={node.colors.bg} stroke={isActive ? node.colors.border : node.colors.border + '55'} strokeWidth="2" />
+                       fill={node.colors.bg} stroke={node.colors.border} strokeOpacity={isActive ? 1 : 0.3} strokeWidth="2" />
             );
           } else if (node.type === NodeType.CONSOLE) {
             // Parallelogram
             svgShape = (
               <polygon points="20,2 198,2 180,48 2,48" 
-                       fill={node.colors.bg} stroke={isActive ? node.colors.border : node.colors.border + '55'} strokeWidth="2" />
+                       fill={node.colors.bg} stroke={node.colors.border} strokeOpacity={isActive ? 1 : 0.3} strokeWidth="2" />
             );
           } else {
             // Process Rectangle
             svgShape = (
               <rect x="2" y="2" width="196" height="46" rx="4" ry="4" 
-                    fill={node.colors.bg} stroke={isActive ? node.colors.border : node.colors.border + '55'} strokeWidth="2" />
+                    fill={node.colors.bg} stroke={node.colors.border} strokeOpacity={isActive ? 1 : 0.3} strokeWidth="2" />
             );
           }
 

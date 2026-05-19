@@ -9,6 +9,8 @@ import LinkedListVisualizer from './components/LinkedListVisualizer';
 import TreeVisualizer from './components/TreeVisualizer';
 import RecursionVisualizer from './components/RecursionVisualizer';
 import OnboardingModal from './components/OnboardingModal';
+import SettingsPage from './components/SettingsPage';
+import BackgroundEffects from './components/BackgroundEffects';
 import { useAppStore } from './store/useAppStore';
 
 const DEFAULT_CODE = {
@@ -86,6 +88,18 @@ function AppShell() {
     }
   }, [state.code, actions]);
 
+  // Apply theme and UI settings on change
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', state.theme);
+    localStorage.setItem('codevista-theme', state.theme);
+
+    if (state.settings) {
+      document.documentElement.setAttribute('data-corners', state.settings.uiCorners || 'rounded');
+      document.documentElement.setAttribute('data-density', state.settings.compactMode ? 'compact' : 'normal');
+      document.documentElement.setAttribute('data-font', state.settings.uiFont || 'sans');
+    }
+  }, [state.theme, state.settings?.uiCorners, state.settings?.compactMode, state.settings?.uiFont]);
+
   useEffect(() => {
     // Artificial app initialization delay for loading state
     const t = setTimeout(() => setLoading(false), 800);
@@ -117,7 +131,7 @@ function AppShell() {
         }
       }
     };
-    
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [state.isPlaying, play, pause, next, prev, reset, state.code]);
@@ -134,64 +148,81 @@ function AppShell() {
   }
 
   return (
-    <div className="flex flex-col h-full" style={{ background: 'var(--color-bg-base)' }}>
+    <div className="flex flex-col h-full relative" style={{ background: 'var(--color-bg-base)' }}>
       <OnboardingModal />
+      <BackgroundEffects />
       {/* Top navbar */}
       <TopNav />
 
-      {/* Main workspace */}
-      <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
-        {/* Left: Code Editor (hidden on extremely small screens, or stacked) */}
-        <div className="lg:h-full lg:block hidden border-r shrink-0" style={{ borderColor: 'var(--color-border)' }}>
-          <CodeEditorPanel key={state.algorithmMode} />
-        </div>
+      {state.activePage === 'settings' ? (
+        <SettingsPage />
+      ) : (
+        <>
+          {/* Main workspace */}
+          <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
+            {/* Left: Code Editor */}
+            <div
+              className="lg:h-full h-[40vh] border-b lg:border-b-0 lg:border-r shrink-0 w-full lg:w-auto flex flex-col"
+              style={{ borderColor: 'var(--color-border)', flexBasis: 'auto' }}
+            >
+              <div className="w-full h-full lg:w-auto" style={{ maxWidth: '100%' }}>
+                <CodeEditorPanel key={state.algorithmMode} />
+              </div>
+            </div>
 
-        {/* Center: Visualization canvas */}
-        <main className="flex-1 flex flex-col overflow-hidden">
-          {/* Canvas toolbar */}
-          <CanvasToolbar />
+            {/* Center: Visualization canvas */}
+            <main className="flex-1 flex flex-col min-h-[50vh] overflow-hidden">
+              {/* Canvas toolbar */}
+              <CanvasToolbar />
 
-          {/* Visualizer */}
-          {state.algorithmMode === 'general' && <VisualizationPanel graph={graph} />}
-          {state.algorithmMode === 'linkedList' && <LinkedListVisualizer step={steps[state.currentStep]} />}
-          {state.algorithmMode === 'binaryTree' && <TreeVisualizer step={steps[state.currentStep]} />}
-          {state.algorithmMode === 'recursion' && <RecursionVisualizer step={steps[state.currentStep]} />}
-        </main>
+              {/* Visualizer */}
+              {state.algorithmMode === 'general' && <VisualizationPanel graph={graph} />}
+              {state.algorithmMode === 'linkedList' && <LinkedListVisualizer step={steps[state.currentStep]} />}
+              {state.algorithmMode === 'binaryTree' && <TreeVisualizer step={steps[state.currentStep]} />}
+              {state.algorithmMode === 'recursion' && <RecursionVisualizer step={steps[state.currentStep]} />}
+            </main>
 
-        {/* Right: Debug Panel */}
-        <div className="lg:h-full lg:block hidden border-l shrink-0" style={{ borderColor: 'var(--color-border)' }}>
-          <DebugPanel steps={steps} />
-        </div>
-      </div>
+            {/* Right: Debug Panel */}
+            <div
+              className="lg:h-full h-[30vh] border-t lg:border-t-0 lg:border-l shrink-0 w-full lg:w-auto flex flex-col"
+              style={{ borderColor: 'var(--color-border)' }}
+            >
+              <DebugPanel steps={steps} />
+            </div>
+          </div>
 
-      {/* Global Step Explanation Panel */}
-      {state.steps && state.steps[state.currentStep]?.data?.message && (
-        <div 
-          className="absolute bottom-[60px] left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-full text-sm font-mono shadow-xl transition-all border w-11/12 max-w-2xl text-center z-50 animate-fade-in"
-          style={{
-            background: 'var(--color-bg-elevated)',
-            borderColor: 'var(--color-border-bright)',
-            color: 'var(--color-text-secondary)',
-            boxShadow: '0 -4px 20px rgba(0,0,0,0.5)'
-          }}
-        >
-          {state.steps[state.currentStep].data.message}
-        </div>
+          {/* Global Step Explanation Panel */}
+          {state.steps && state.steps[state.currentStep]?.data?.message && (
+            <div
+              className="absolute bottom-[60px] left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-full text-sm font-mono shadow-xl transition-all border w-11/12 max-w-2xl text-center z-50 animate-fade-in"
+              style={{
+                background: 'var(--color-bg-elevated)',
+                borderColor: 'var(--color-border-bright)',
+                color: 'var(--color-text-secondary)',
+                boxShadow: '0 -4px 20px rgba(0,0,0,0.5)'
+              }}
+            >
+              {state.steps[state.currentStep].data.message}
+            </div>
+          )}
+
+          {/* Bottom: Control bar */}
+          <ControlBar
+            onRun={play}
+            onPause={pause}
+            onStep={next}
+            onStepBackward={prev}
+            onReset={reset}
+          />
+        </>
       )}
-
-      {/* Bottom: Control bar */}
-      <ControlBar
-        onRun={play}
-        onPause={pause}
-        onStep={next}
-        onStepBackward={prev}
-        onReset={reset}
-      />
     </div>
   );
 }
 
 function TopNav() {
+  const { state, actions } = useAppStore();
+
   return (
     <header
       className="flex items-center justify-between px-5 py-2.5 border-b shrink-0"
@@ -205,7 +236,7 @@ function TopNav() {
       <div className="flex items-center gap-3">
         <div
           className="w-7 h-7 rounded-lg flex items-center justify-center text-sm font-bold"
-          style={{ background: 'linear-gradient(135deg, #6c63ff 0%, #00d4aa 100%)' }}
+          style={{ background: 'linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-2) 100%)' }}
         >
           ⬡
         </div>
@@ -227,6 +258,20 @@ function TopNav() {
         </div>
       </div>
 
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => actions.setActivePage(state.activePage === 'settings' ? 'workspace' : 'settings')}
+          className="text-sm flex items-center gap-2 px-3 py-1.5 rounded transition-colors"
+          style={{
+            color: state.activePage === 'settings' ? 'var(--color-accent)' : 'var(--color-text-muted)',
+            background: state.activePage === 'settings' ? 'var(--color-accent-glow)' : 'transparent',
+            border: state.activePage === 'settings' ? '1px solid var(--color-accent)' : '1px solid transparent'
+          }}
+        >
+          <span className="text-lg leading-none" style={{ marginTop: '-2px' }}>⚙</span>
+          <span className="hidden sm:inline font-medium">Settings</span>
+        </button>
+      </div>
     </header>
   );
 }
@@ -234,10 +279,10 @@ function TopNav() {
 function CanvasToolbar() {
   const { state, actions } = useAppStore();
   const modes = [
-    { value: 'general',    label: '⬡ Flowchart', tooltip: 'Visualize generic code flow into an AST-like flowchart graph.' },
+    { value: 'general', label: '⬡ Flowchart', tooltip: 'Visualize generic code flow into an AST-like flowchart graph.' },
     { value: 'linkedList', label: '⧖ Linked List', tooltip: 'Simulate linked list traversals. Expects an array input.' },
     { value: 'binaryTree', label: '⊳ Binary Tree', tooltip: 'Visualize tree traversals (e.g. Inorder). Expects an array input.' },
-    { value: 'recursion',  label: '▤ Recursion', tooltip: 'Visualize call stack for a recursive function like Factorial.' },
+    { value: 'recursion', label: '▤ Recursion', tooltip: 'Visualize call stack for a recursive function like Factorial.' },
   ];
 
   return (
@@ -260,7 +305,7 @@ function CanvasToolbar() {
             actions.clearDebug();
             actions.reset(); // reset engine when switching mode
           }}
-          className="text-xs px-3 py-1 rounded transition-all duration-150"
+          className="text-xs px-3 py-1 rounded transition-all duration-200 hover:scale-105 active:scale-95"
           style={{
             cursor: 'pointer',
             border: '1px solid',

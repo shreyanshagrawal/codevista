@@ -71,7 +71,7 @@ export default function RecursionVisualizer({ step }) {
               {/* Status Badge */}
               <div className="flex items-center">
                 {frame.status === 'calling' && <span className="text-xs font-mono" style={{ color: 'var(--color-text-muted)' }}>Calling...</span>}
-                {frame.status === 'waiting' && <span className="text-xs font-mono" style={{ color: '#fcd34d' }}>Waiting ⧖</span>}
+                {frame.status === 'waiting' && <span className="text-xs font-mono" style={{ color: 'var(--color-syntax-number)' }}>Waiting ⧖</span>}
                 {frame.status === 'computing' && <span className="text-xs font-mono font-bold" style={{ color: 'var(--color-accent)' }}>Computing ⚙</span>}
                 {frame.status === 'base_case' && <span className="text-xs font-mono font-bold" style={{ color: 'var(--color-accent-2)' }}>Base Case!</span>}
               </div>
